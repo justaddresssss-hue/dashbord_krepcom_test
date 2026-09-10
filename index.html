@@ -322,23 +322,39 @@
     // =========================================================
     
     // Загружаем ТОЛЬКО имена и отделы (PIN в браузер не приходит)
-    async function loadUsers() {
-        const { data, error } = await supabase.rpc('get_user_list');
-        if (error) {
-            console.error('Ошибка загрузки пользователей:', error);
-            return;
-        }
-        
-        const select = document.getElementById('loginName');
-        select.innerHTML = '<option value="">— Выберите сотрудника —</option>';
-        
+ async function loadUsers() {
+    console.log('🔄 Начинаем загрузку сотрудников...');
+    
+    const { data, error } = await supabase.rpc('get_user_list');
+    
+    if (error) {
+        console.error('❌ Ошибка от Supabase:', error);
+        return;
+    }
+    
+    console.log('✅ Данные получены:', data);
+    console.log('Количество сотрудников:', data ? data.length : 0);
+    
+    const select = document.getElementById('loginName');
+    if (!select) {
+        console.error('❌ Не найден элемент <select id="loginName"> в HTML!');
+        return;
+    }
+    
+    select.innerHTML = '<option value="">— Выберите сотрудника —</option>';
+    
+    if (data && data.length > 0) {
         data.forEach(user => {
             const option = document.createElement('option');
             option.value = user.name;
             option.textContent = user.name + ' (' + user.department + ')';
             select.appendChild(option);
         });
+        console.log('✅ Список успешно заполнен!');
+    } else {
+        console.warn('⚠️ База вернула пустой список. Проверьте таблицу users в Supabase.');
     }
+}
 
     // Проверка входа происходит ВНУТРИ базы данных
     window.doLogin = async function() {
