@@ -3,206 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Розница: Система отчётов — KREPCOM  </title>
+    <title>Розница: Система отчётов — KREPCOM</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: linear-gradient(135deg, #b31b1b 0%, #7a0f0f 100%);
-            min-height: 100vh;
-            padding: 20px;
-            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
-        }
+        body { background: linear-gradient(135deg, #b31b1b 0%, #7a0f0f 100%); min-height: 100vh; padding: 20px; font-family: 'Segoe UI', Roboto, system-ui, sans-serif; }
         body.pc-mode { max-width: 1600px; margin: 0 auto; }
         body.mobile-mode { max-width: 550px; margin: 0 auto; padding: 12px; }
         
-        /* Экран входа */
-        #loginScreen {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #b31b1b 0%, #7a0f0f 100%);
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            z-index: 9999;
-        }
-        .login-box {
-            background: white;
-            padding: 40px;
-            border-radius: 24px;
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
+        #loginScreen { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #b31b1b 0%, #7a0f0f 100%); position: fixed; top: 0; left: 0; width: 100%; z-index: 9999; }
+        .login-box { background: white; padding: 40px; border-radius: 24px; text-align: center; max-width: 400px; width: 90%; }
         .login-box h2 { margin-bottom: 20px; color: #1a1a1a; }
-        .login-box select, .login-box input {
-            width: 100%;
-            padding: 12px;
-            border-radius: 12px;
-            border: 1px solid #cbd5e1;
-            margin-bottom: 15px;
-            font-size: 16px;
-        }
+        .login-box select, .login-box input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #cbd5e1; margin-bottom: 15px; font-size: 16px; }
         .login-box input { text-align: center; letter-spacing: 4px; }
-        .login-box button {
-            width: 100%;
-            background: #cc2222;
-            color: white;
-            border: none;
-            padding: 14px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-        }
+        .login-box button { width: 100%; background: #cc2222; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
         .login-error { color: #b91c1c; margin-top: 15px; font-size: 14px; display: none; }
         
-        /* Основной контент */
         #mainContent { display: none; }
-        
-        .toolbar {
-            background: #1a1a1a;
-            border-radius: 28px;
-            padding: 12px 24px;
-            margin-bottom: 24px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-        }
+        .toolbar { background: #1a1a1a; border-radius: 28px; padding: 12px 24px; margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
         .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
-        .btn {
-            padding: 8px 18px;
-            border: none;
-            border-radius: 40px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 13px;
-            transition: 0.2s;
-            background: #333;
-            color: #fff;
-        }
-        .btn-primary { background: #cc2222; color: white; }
+        .btn { padding: 8px 18px; border: none; border-radius: 40px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s; background: #333; color: #fff; }
         .btn-success { background: #15803d; color: white; }
         .btn-info { background: #1e40af; color: white; }
         .btn-warning { background: #b45309; color: white; }
-        .btn-danger { background: #b91c1c; color: white; }
-        .btn-outline { background: transparent; border: 1px solid #cbd5e1; color: #333; }
         .view-btn { background: #333; color: #ccc; }
         .view-btn.active { background: #cc2222; color: white; }
         
-        .report-card {
-            background: white;
-            border-radius: 32px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            overflow: hidden;
-            margin-bottom: 30px;
-        }
-        .header {
-            background: #1a1a1a;
-            color: white;
-            padding: 20px 28px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        .date-picker input {
-            background: rgba(255,255,255,0.15);
-            border: none;
-            padding: 8px 15px;
-            border-radius: 30px;
-            color: white;
-            font-size: 16px;
-        }
+        .report-card { background: white; border-radius: 32px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); overflow: hidden; margin-bottom: 30px; }
+        .header { background: #1a1a1a; color: white; padding: 20px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .date-picker input { background: rgba(255,255,255,0.15); border: none; padding: 8px 15px; border-radius: 30px; color: white; font-size: 16px; }
         .section { padding: 24px 28px; border-bottom: 1px solid #eef2f6; }
-        .section-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: #1a1a1a;
-            margin-bottom: 20px;
-            padding-left: 12px;
-            border-left: 5px solid #cc2222;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        .section-title { font-size: 20px; font-weight: 700; color: #1a1a1a; margin-bottom: 20px; padding-left: 12px; border-left: 5px solid #cc2222; }
         .data-table { width: 100%; border-collapse: collapse; }
-        .data-table th, .data-table td {
-            padding: 12px 12px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
-            vertical-align: middle;
-        }
+        .data-table th, .data-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
         .data-table th { background: #f8fafc; font-weight: 600; }
-        input, select, textarea {
-            padding: 10px 12px;
-            border-radius: 12px;
-            border: 1px solid #cbd5e1;
-            font-size: 14px;
-            width: 100%;
-            background: white;
-        }
-        .badge { display: inline-block; padding: 4px 12px; border-radius: 40px; font-size: 13px; font-weight: 500; }
-        .badge-success { background: #dcfce7; color: #15803d; }
-        .badge-warning { background: #fef9c3; color: #854d0e; }
-        .badge-danger { background: #fee2e2; color: #b91c1c; }
-        .badge-info { background: #dbeafe; color: #1e40af; }
-        .note { background: #fefce8; padding: 12px 16px; border-radius: 16px; border-left: 4px solid #cc2222; margin-top: 16px; }
-        .tabs { display: flex; gap: 8px; padding: 0 28px; background: white; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; }
+        input, select, textarea { padding: 10px 12px; border-radius: 12px; border: 1px solid #cbd5e1; font-size: 14px; width: 100%; background: white; }
+        .tabs { display: flex; gap: 8px; padding: 0 28px; background: white; border-bottom: 1px solid #e2e8f0; }
         .tab { padding: 12px 24px; cursor: pointer; font-weight: 600; color: #64748b; border-bottom: 3px solid transparent; }
         .tab.active { color: #cc2222; border-bottom-color: #cc2222; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .chart-container { background: #f8fafc; border-radius: 20px; padding: 16px; margin-top: 20px; }
-        canvas { max-height: 300px; width: 100% !important; }
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .kpi-card { background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-radius: 20px; padding: 16px; text-align: center; border: 1px solid #e2e8f0; }
         .kpi-value { font-size: 28px; font-weight: 800; color: #1a1a1a; margin: 8px 0; }
         .kpi-label { font-size: 12px; color: #64748b; }
-        .filter-bar { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
-        .filter-bar select, .filter-bar input { padding: 8px 15px; border-radius: 40px; border: 1px solid #cbd5e1; background: white; }
+        .chart-container { background: #f8fafc; border-radius: 20px; padding: 16px; margin-top: 20px; }
+        canvas { max-height: 300px; width: 100% !important; }
         .required-field { border: 2px solid #cc2222 !important; background: #fff5f5 !important; }
-        @media (max-width: 700px) {
-            .section { padding: 16px; }
-            .kpi-value { font-size: 22px; }
-        }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 30px; border-radius: 24px; width: 400px; text-align: center; }
-        .modal-content input { margin: 15px 0; padding: 10px; width: 100%; border-radius: 12px; border: 1px solid #cbd5e1; }
         .status-badge { position: fixed; bottom: 20px; right: 20px; background: white; padding: 8px 16px; border-radius: 40px; font-size: 12px; font-weight: 500; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .user-info { position: fixed; top: 20px; right: 20px; background: white; padding: 8px 16px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); font-size: 12px; z-index: 1000; }
     </style>
 </head>
 <body>
 
-<!-- Экран входа -->
 <div id="loginScreen">
     <div class="login-box">
         <h2>🔐 Вход в систему</h2>
         <p style="margin-bottom: 20px; color: #666; font-size: 14px;">Выберите имя и введите PIN</p>
-        <select id="loginName">
-            <option value="">— Выберите сотрудника —</option>
-        </select>
+        <select id="loginName"><option value="">— Выберите сотрудника —</option></select>
         <input type="password" id="loginPin" placeholder="PIN-код">
         <button onclick="doLogin()">Войти</button>
         <p id="loginError" class="login-error"></p>
     </div>
 </div>
 
-<!-- Основной контент -->
 <div id="mainContent">
-    <div class="user-info">
-        👤 <span id="currentUserName"></span>
-        <button onclick="logout()" style="background: #ef4444; color: white; border: none; padding: 4px 10px; border-radius: 10px; margin-left: 10px; cursor: pointer; font-size: 11px;">Выйти</button>
-    </div>
+    <div class="user-info">👤 <span id="currentUserName"></span> <button onclick="logout()" style="background:#ef4444;color:white;border:none;padding:4px 10px;border-radius:10px;margin-left:10px;cursor:pointer;font-size:11px;">Выйти</button></div>
 
     <div class="toolbar">
         <div class="btn-group">
@@ -220,21 +87,17 @@
         <div class="tab" onclick="showTab('stats')">📊 Статистика</div>
     </div>
 
-    <!-- Вкладка: Отчёт -->
     <div id="tab-report" class="tab-content active">
         <div class="report-card">
             <div class="header">
                 <h2>🏪 Отчёт подразделения</h2>
-                <div>
-                    <select id="departmentSelect" style="background: rgba(255,255,255,0.15); color: white; border: none; padding: 8px 15px; border-radius: 30px;">
-                        <option value="СПБ 1 (Манч)">СПБ 1 (Манч)</option>
-                        <option value="СПБ 2 (Просвет)">СПБ 2 (Просвет)</option>
-                        <option value="МСК 1 (Реутов)">МСК 1 (Реутов)</option>
-                    </select>
-                </div>
+                <div><select id="departmentSelect" style="background: rgba(255,255,255,0.15); color: white; border: none; padding: 8px 15px; border-radius: 30px;">
+                    <option value="СПБ 1 (Манч)">СПБ 1 (Манч)</option>
+                    <option value="СПБ 2 (Просвет)">СПБ 2 (Просвет)</option>
+                    <option value="МСК 1 (Реутов)">МСК 1 (Реутов)</option>
+                </select></div>
                 <div class="date-picker"><input type="date" id="reportDate"></div>
             </div>
-            
             <div class="section">
                 <div class="section-title">👥 Состав & дисциплина</div>
                 <table class="data-table">
@@ -244,7 +107,6 @@
                     <tr><td>Опоздавшие / Заболевшие / Прогулявшие</td><td><input type="number" id="late" value="0" style="width:80px"> / <input type="number" id="sick" value="0" style="width:80px"> / <input type="number" id="absent" value="0" style="width:80px"></td></tr>
                 </table>
             </div>
-            
             <div class="section">
                 <div class="section-title">💰 Продажи</div>
                 <table class="data-table">
@@ -253,7 +115,6 @@
                     <tr><td>Кол-во чеков</td><td>—</td><td><input type="number" id="factChecks" placeholder="0" class="required-field"></td></tr>
                 </table>
             </div>
-            
             <div class="section">
                 <div class="section-title">✅ Чек-лист</div>
                 <table class="data-table">
@@ -267,27 +128,20 @@
                     <tr><td>Пропущенные звонки</td><td><input type="number" id="missedCalls" value="0"></td><td><input type="text" id="missedComment"></td></tr>
                 </table>
             </div>
-            
             <div class="section">
-                <div class="section-title"> Итоги дня</div>
+                <div class="section-title">📝 Итоги дня</div>
                 <textarea id="comment" rows="3" placeholder="Общий итог, проблемы, план на завтра..."></textarea>
             </div>
         </div>
     </div>
 
-    <!-- Вкладка: Статистика -->
     <div id="tab-stats" class="tab-content">
         <div class="report-card">
-            <div class="header">
-                <h2>📊 Статистика</h2>
-            </div>
+            <div class="header"><h2>📊 Статистика</h2></div>
             <div class="section">
                 <div class="filter-bar">
                     <select id="statsMonthSelect">
-                        <option value="2026-06">Июнь 2026</option>
-                        <option value="2026-07">Июль 2026</option>
-                        <option value="2026-08">Август 2026</option>
-                        <option value="2026-09">Сентябрь 2026</option>
+                        <option value="2026-06">Июнь 2026</option><option value="2026-07">Июль 2026</option><option value="2026-08">Август 2026</option><option value="2026-09">Сентябрь 2026</option>
                     </select>
                     <button class="btn btn-info" onclick="loadStats()">Обновить</button>
                 </div>
@@ -296,105 +150,62 @@
                     <div class="kpi-card"><div class="kpi-label">💰 Общий факт</div><div class="kpi-value" id="totalFact">0 ₽</div></div>
                     <div class="kpi-card"><div class="kpi-label">🎯 Выполнение</div><div class="kpi-value" id="totalPercent">0%</div></div>
                 </div>
-                <div class="chart-container">
-                    <canvas id="monthlyChart"></canvas>
-                </div>
+                <div class="chart-container"><canvas id="monthlyChart"></canvas></div>
             </div>
         </div>
     </div>
-
     <div id="syncStatus" class="status-badge">✅ Готово</div>
 </div>
 
 <script>
-    // =========================================================
-    // НАСТРОЙКА SUPABASE
-    // =========================================================
+    // ✅ ИСПРАВЛЕНО: Убрано дублирование переменных
     const SUPABASE_URL = 'https://sczaxmyskwaezbgigtjf.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjemF4bXlza3dhZXpiZ2lndGpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3Nzg5MzYsImV4cCI6MjEwNDM1NDkzNn0.cFRF5gn9j5wO5rdCRZhliRP5IFIuJuZqwG3IKjSowyw';
     
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-     alert('🚀 СКРИПТ ЗАПУСТИЛСЯ!'); // <--- ДОБАВЬТЕ ЭТУ СТРОКУ
+    alert('🚀 СКРИПТ ЗАПУСТИЛСЯ!'); // Теперь это сработает!
     
-    const SUPABASE_URL = 'https://sczaxmyskwaezbgigtjf.supabase.co';
     let currentUser = null;
     let monthlyChart = null;
 
-    // =========================================================
-    // БЕЗОПАСНАЯ АВТОРИЗАЦИЯ
-    // =========================================================
-    
-    // Загружаем ТОЛЬКО имена и отделы (PIN в браузер не приходит)
- async function loadUsers() {
-    console.log('🔄 Начинаем загрузку сотрудников...');
-    
-    const { data, error } = await supabase.rpc('get_user_list');
-    
-    if (error) {
-        console.error('❌ Ошибка от Supabase:', error);
-        return;
+    async function loadUsers() {
+        console.log('🔄 Загрузка сотрудников...');
+        const { data, error } = await supabase.rpc('get_user_list');
+        if (error) { console.error('❌ Ошибка:', error); return; }
+        
+        const select = document.getElementById('loginName');
+        select.innerHTML = '<option value="">— Выберите сотрудника —</option>';
+        if (data && data.length > 0) {
+            data.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.name;
+                option.textContent = user.name + ' (' + user.department + ')';
+                select.appendChild(option);
+            });
+            console.log('✅ Список заполнен:', data.length);
+        }
     }
-    
-    console.log('✅ Данные получены:', data);
-    console.log('Количество сотрудников:', data ? data.length : 0);
-    
-    const select = document.getElementById('loginName');
-    if (!select) {
-        console.error('❌ Не найден элемент <select id="loginName"> в HTML!');
-        return;
-    }
-    
-    select.innerHTML = '<option value="">— Выберите сотрудника —</option>';
-    
-    if (data && data.length > 0) {
-        data.forEach(user => {
-            const option = document.createElement('option');
-            option.value = user.name;
-            option.textContent = user.name + ' (' + user.department + ')';
-            select.appendChild(option);
-        });
-        console.log('✅ Список успешно заполнен!');
-    } else {
-        console.warn('⚠️ База вернула пустой список. Проверьте таблицу users в Supabase.');
-    }
-}
 
-    // Проверка входа происходит ВНУТРИ базы данных
     window.doLogin = async function() {
         const name = document.getElementById('loginName').value;
         const pin = document.getElementById('loginPin').value;
         const errorEl = document.getElementById('loginError');
         
-        if (!name || !pin) {
-            errorEl.textContent = 'Заполните все поля';
-            errorEl.style.display = 'block';
-            return;
-        }
+        if (!name || !pin) { errorEl.textContent = 'Заполните все поля'; errorEl.style.display = 'block'; return; }
         
-        // Вызываем функцию check_user_login. База сама сверит PIN и вернет результат
-        const { data, error } = await supabase.rpc('check_user_login', {
-            p_name: name,
-            p_pin: pin
-        });
+        const { data, error } = await supabase.rpc('check_user_login', { p_name: name, p_pin: pin });
         
-        // Если массив пустой или есть ошибка - значит, пара имя/PIN неверна
         if (error || !data || data.length === 0) {
             errorEl.textContent = 'Неверное имя или PIN';
             errorEl.style.display = 'block';
             return;
         }
         
-        // Успех! data[0] содержит только id, name, role, department (PIN там нет!)
         currentUser = data[0];
         sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-        
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('mainContent').style.display = 'block';
-        
-        // Поддержка обоих вариантов ID из вашего HTML
-        const nameEl = document.getElementById('currentUserName') || document.getElementById('userName');
-        if (nameEl) nameEl.textContent = currentUser.name;
-        
+        document.getElementById('currentUserName').textContent = currentUser.name;
         document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
     };
 
@@ -404,42 +215,24 @@
         location.reload();
     };
 
-    // Проверка авторизации при загрузке
     window.addEventListener('DOMContentLoaded', () => {
-    alert('🔍 Страница загрузилась! Проверяем авторизацию...');
-    
-    const saved = sessionStorage.getItem('currentUser');
-    if (saved) {
-        alert('✅ Найден сохраненный пользователь');
-        currentUser = JSON.parse(saved);
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('mainContent').style.display = 'block';
-        const nameEl = document.getElementById('currentUserName') || document.getElementById('userName');
-        if (nameEl) nameEl.textContent = currentUser.name;
-        document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
-    } else {
-        alert(' Загружаем список сотрудников...');
-        loadUsers();
-    }
-});
+        const saved = sessionStorage.getItem('currentUser');
+        if (saved) {
+            currentUser = JSON.parse(saved);
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('currentUserName').textContent = currentUser.name;
+            document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
+        } else {
+            loadUsers();
+        }
+    });
 
-    // =========================================================
-    // СОХРАНЕНИЕ ОТЧЁТА
-    // =========================================================
     window.saveCurrentReport = async function() {
         const factRevenue = document.getElementById('factRevenue').value;
-        const factChecks = document.getElementById('factChecks').value;
-        const discountPerc = document.getElementById('discountPerc').value;
-        const stockSales = document.getElementById('stockSales').value;
-        const phoneSales = document.getElementById('phoneSales').value;
+        if (!factRevenue) { alert('❌ Заполните факт выручки'); return; }
         
-        if (!factRevenue || !factChecks || !discountPerc || !stockSales || !phoneSales) {
-            alert('❌ Заполните все обязательные поля (выделены красным)');
-            return;
-        }
-        
-        setStatus('📤 Отправка в базу...');
-        
+        setStatus('📤 Отправка...');
         const report = {
             date: document.getElementById('reportDate').value,
             department: document.getElementById('departmentSelect').value,
@@ -451,39 +244,112 @@
             absent: parseInt(document.getElementById('absent').value) || 0,
             plan_revenue: parseFloat(document.getElementById('planRevenue').value) || 0,
             fact_revenue: parseFloat(factRevenue),
-            fact_checks: parseInt(factChecks),
-            plan_percent: 0, 
+            fact_checks: parseInt(document.getElementById('factChecks').value) || 0,
             restock: document.getElementById('restock').value,
             restock_comment: document.getElementById('restockComment').value,
             meeting: document.getElementById('meeting').value,
             meeting_comment: document.getElementById('meetingComment').value,
             minuses: document.getElementById('minuses').value,
             minuses_comment: document.getElementById('minusesComment').value,
-            discount_perc: parseFloat(discountPerc),
-            stock_sales: parseFloat(stockSales),
+            discount_perc: parseFloat(document.getElementById('discountPerc').value) || 0,
+            stock_sales: parseFloat(document.getElementById('stockSales').value) || 0,
             stock_comment: document.getElementById('stockComment').value,
-            phone_sales: parseFloat(phoneSales),
+            phone_sales: parseFloat(document.getElementById('phoneSales').value) || 0,
             phone_comment: document.getElementById('phoneComment').value,
             missed_calls: parseInt(document.getElementById('missedCalls').value) || 0,
             missed_comment: document.getElementById('missedComment').value,
             comment: document.getElementById('comment').value
         };
         
-        const { data, error } = await supabase.from('reports').insert([report]).select();
-        
+        const { error } = await supabase.from('reports').insert([report]);
         if (error) {
-            console.error('Ошибка:', error);
-            setStatus('❌ Ошибка сохранения', true);
+            setStatus('❌ Ошибка', true);
             alert('❌ Ошибка: ' + error.message);
         } else {
             setStatus('✅ Сохранено!');
             alert('✅ Отчёт успешно сохранён!');
+            createNewReport();
         }
     };
 
     window.createNewReport = function() {
         document.getElementById('planRevenue').value = '';
         document.getElementById('factRevenue').value = '';
-        document.getElementById
+        document.getElementById('factChecks').value = '';
+        document.getElementById('discountPerc').value = '';
+        document.getElementById('stockSales').value = '';
+        document.getElementById('phoneSales').value = '';
+        document.getElementById('comment').value = '';
+        document.getElementById('late').value = '0';
+        document.getElementById('sick').value = '0';
+        document.getElementById('absent').value = '0';
+        document.getElementById('missedCalls').value = '0';
+        setStatus('🆕 Создан новый отчёт');
+    };
+
+    window.loadStats = async function() {
+        const month = document.getElementById('statsMonthSelect').value;
+        setStatus('⏳ Загрузка...');
+        const { data, error } = await supabase.from('reports').select('department, plan_revenue, fact_revenue').gte('date', month + '-01').lt('date', month + '-31');
+        if (error) { setStatus('❌ Ошибка', true); return; }
+        
+        let totalPlan = 0, totalFact = 0;
+        const deptStats = {};
+        data.forEach(r => {
+            totalPlan += r.plan_revenue || 0;
+            totalFact += r.fact_revenue || 0;
+            if (!deptStats[r.department]) deptStats[r.department] = { plan: 0, fact: 0 };
+            deptStats[r.department].plan += r.plan_revenue || 0;
+            deptStats[r.department].fact += r.fact_revenue || 0;
+        });
+        
+        document.getElementById('totalPlan').textContent = totalPlan.toLocaleString() + ' ₽';
+        document.getElementById('totalFact').textContent = totalFact.toLocaleString() + ' ₽';
+        document.getElementById('totalPercent').textContent = (totalPlan > 0 ? ((totalFact / totalPlan) * 100).toFixed(1) : 0) + '%';
+        updateChart(deptStats);
+        setStatus('✅ Статистика загружена');
+    };
+
+    function updateChart(deptStats) {
+        const ctx = document.getElementById('monthlyChart').getContext('2d');
+        const labels = Object.keys(deptStats);
+        if (monthlyChart) monthlyChart.destroy();
+        monthlyChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'План', data: labels.map(d => deptStats[d].plan), backgroundColor: '#b31b1b', borderRadius: 6 },
+                    { label: 'Факт', data: labels.map(d => deptStats[d].fact), backgroundColor: '#1a1a1a', borderRadius: 6 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: true }
+        });
+    }
+
+    function setStatus(text, isError = false) {
+        const el = document.getElementById('syncStatus');
+        if (!el) return;
+        el.textContent = text;
+        el.style.background = isError ? '#fee2e2' : '#dcfce7';
+        el.style.color = isError ? '#b91c1c' : '#15803d';
+        setTimeout(() => { el.textContent = '✅ Готово'; }, 3000);
+    }
+
+    window.showTab = function(tabId) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+        if (tabId === 'stats') loadStats();
+    };
+
+    window.setViewMode = function(mode) {
+        document.body.classList.remove('pc-mode', 'mobile-mode');
+        document.body.classList.add(mode === 'pc' ? 'pc-mode' : 'mobile-mode');
+        document.getElementById('pcBtn').classList.toggle('active', mode === 'pc');
+        document.getElementById('mobileBtn').classList.toggle('active', mode === 'mobile');
+    };
+</script>
 </body>
 </html>
