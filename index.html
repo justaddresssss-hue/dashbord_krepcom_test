@@ -403,18 +403,22 @@
 
     // Проверка авторизации при загрузке
     window.addEventListener('DOMContentLoaded', () => {
-        const saved = sessionStorage.getItem('currentUser');
-        if (saved) {
-            currentUser = JSON.parse(saved);
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('mainContent').style.display = 'block';
-            const nameEl = document.getElementById('currentUserName') || document.getElementById('userName');
-            if (nameEl) nameEl.textContent = currentUser.name;
-            document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
-        } else {
-            loadUsers();
-        }
-    });
+    alert('🔍 Страница загрузилась! Проверяем авторизацию...');
+    
+    const saved = sessionStorage.getItem('currentUser');
+    if (saved) {
+        alert('✅ Найден сохраненный пользователь');
+        currentUser = JSON.parse(saved);
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+        const nameEl = document.getElementById('currentUserName') || document.getElementById('userName');
+        if (nameEl) nameEl.textContent = currentUser.name;
+        document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
+    } else {
+        alert(' Загружаем список сотрудников...');
+        loadUsers();
+    }
+});
 
     // =========================================================
     // СОХРАНЕНИЕ ОТЧЁТА
