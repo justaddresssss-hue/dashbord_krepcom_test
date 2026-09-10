@@ -311,23 +311,27 @@
     // НАСТРОЙКА SUPABASE
     // =========================================================
     const SUPABASE_URL = 'https://sczaxmyskwaezbgigtjf.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjemF4bXlza3dhZXpiZ2lndGpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3Nzg5MzYsImV4cCI6MjEwNDM1NDkzNn0.cFRF5gn9j5wO5rdCRZhliRP5IFIuJuZqwG3IKjSowyw'; // ⚠️ ВСТАВЬТЕ ВАШ ПОЛНЫЙ КЛЮЧ
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjemF4bXlza3dhZXpiZ2lndGpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3Nzg5MzYsImV4cCI6MjEwNDM1NDkzNn0.cFRF5gn9j5wO5rdCRZhliRP5IFIuJuZqwG3IKjSowyw';
     
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     let currentUser = null;
     let monthlyChart = null;
 
     // =========================================================
-    // АВТОРИЗАЦИЯ
+    // БЕЗОПАСНАЯ АВТОРИЗАЦИЯ
     // =========================================================
+    
+    // Загружаем ТОЛЬКО имена и отделы (PIN в браузер не приходит)
     async function loadUsers() {
-        const { data, error } = await supabase.from('users').select('name, department');
+        const { data, error } = await supabase.rpc('get_user_list');
         if (error) {
             console.error('Ошибка загрузки пользователей:', error);
             return;
         }
         
         const select = document.getElementById('loginName');
+        select.innerHTML = '<option value="">— Выберите сотрудника —</option>';
+        
         data.forEach(user => {
             const option = document.createElement('option');
             option.value = user.name;
@@ -336,6 +340,7 @@
         });
     }
 
+    // Проверка входа происходит ВНУТРИ базы данных
     window.doLogin = async function() {
         const name = document.getElementById('loginName').value;
         const pin = document.getElementById('loginPin').value;
@@ -347,26 +352,30 @@
             return;
         }
         
-        const { data, error } = await supabase
-            .from('users')
-            .select('name, pin, role, department')
-            .eq('name', name)
-            .eq('pin', pin)
-            .single();
+        // Вызываем функцию check_user_login. База сама сверит PIN и вернет результат
+        const { data, error } = await supabase.rpc('check_user_login', {
+            p_name: name,
+            p_pin: pin
+        });
         
-        if (error || !data) {
+        // Если массив пустой или есть ошибка - значит, пара имя/PIN неверна
+        if (error || !data || data.length === 0) {
             errorEl.textContent = 'Неверное имя или PIN';
             errorEl.style.display = 'block';
             return;
         }
         
-        currentUser = data;
+        // Успех! data[0] содержит только id, name, role, department (PIN там нет!)
+        currentUser = data[0];
         sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('mainContent').style.display = 'block';
-        document.getElementById('currentUserName').textContent = currentUser.name;
         
-        // Устанавливаем сегодняшнюю дату
+        // Поддержка обоих вариантов ID из вашего HTML
+        const nameEl = document.getElementById('currentUserName') || document.getElementById('userName');
+        if (nameEl) nameEl.textContent = currentUser.name;
+        
         document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
     };
 
@@ -383,7 +392,8 @@
             currentUser = JSON.parse(saved);
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
-            document.getElementById('currentUserName').textContent = currentUser.name;
+            const nameEl = document.getElementById('currentUserName') || document.getElementById('userName');
+            if (nameEl) nameEl.textContent = currentUser.name;
             document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
         } else {
             loadUsers();
@@ -419,7 +429,7 @@
             plan_revenue: parseFloat(document.getElementById('planRevenue').value) || 0,
             fact_revenue: parseFloat(factRevenue),
             fact_checks: parseInt(factChecks),
-            plan_percent: 0, // Будет рассчитан автоматически
+            plan_percent: 0, 
             restock: document.getElementById('restock').value,
             restock_comment: document.getElementById('restockComment').value,
             meeting: document.getElementById('meeting').value,
@@ -451,106 +461,6 @@
     window.createNewReport = function() {
         document.getElementById('planRevenue').value = '';
         document.getElementById('factRevenue').value = '';
-        document.getElementById('factChecks').value = '';
-        document.getElementById('discountPerc').value = '';
-        document.getElementById('stockSales').value = '';
-        document.getElementById('phoneSales').value = '';
-        document.getElementById('comment').value = '';
-        document.getElementById('late').value = '0';
-        document.getElementById('sick').value = '0';
-        document.getElementById('absent').value = '0';
-        document.getElementById('missedCalls').value = '0';
-        document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
-        setStatus(' Создан новый отчёт');
-    };
-
-    // =========================================================
-    // СТАТИСТИКА
-    // =========================================================
-    window.loadStats = async function() {
-        const month = document.getElementById('statsMonthSelect').value;
-        setStatus(' Загрузка статистики...');
-        
-        const { data, error } = await supabase
-            .from('reports')
-            .select('department, plan_revenue, fact_revenue')
-            .gte('date', month + '-01')
-            .lt('date', month + '-31');
-        
-        if (error) {
-            console.error('Ошибка:', error);
-            setStatus('❌ Ошибка загрузки', true);
-            return;
-        }
-        
-        let totalPlan = 0, totalFact = 0;
-        const deptStats = {};
-        
-        data.forEach(report => {
-            totalPlan += report.plan_revenue || 0;
-            totalFact += report.fact_revenue || 0;
-            
-            if (!deptStats[report.department]) {
-                deptStats[report.department] = { plan: 0, fact: 0 };
-            }
-            deptStats[report.department].plan += report.plan_revenue || 0;
-            deptStats[report.department].fact += report.fact_revenue || 0;
-        });
-        
-        document.getElementById('totalPlan').textContent = totalPlan.toLocaleString() + ' ₽';
-        document.getElementById('totalFact').textContent = totalFact.toLocaleString() + ' ₽';
-        const percent = totalPlan > 0 ? ((totalFact / totalPlan) * 100).toFixed(1) : 0;
-        document.getElementById('totalPercent').textContent = percent + '%';
-        
-        updateChart(deptStats);
-        setStatus('✅ Статистика загружена');
-    };
-
-    function updateChart(deptStats) {
-        const ctx = document.getElementById('monthlyChart').getContext('2d');
-        const labels = Object.keys(deptStats);
-        const planData = labels.map(d => deptStats[d].plan);
-        const factData = labels.map(d => deptStats[d].fact);
-        
-        if (monthlyChart) monthlyChart.destroy();
-        monthlyChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [
-                    { label: 'План', data: planData, backgroundColor: '#b31b1b' },
-                    { label: 'Факт', data: factData, backgroundColor: '#1a1a1a' }
-                ]
-            },
-            options: { responsive: true }
-        });
-    }
-
-    // =========================================================
-    // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-    // =========================================================
-    function setStatus(text, isError = false) {
-        const el = document.getElementById('syncStatus');
-        el.textContent = text;
-        el.style.background = isError ? '#fee2e2' : '#dcfce7';
-        el.style.color = isError ? '#b91c1c' : '#15803d';
-        setTimeout(() => { el.textContent = '✅ Готово'; }, 3000);
-    }
-
-    window.showTab = function(tabId) {
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        document.getElementById('tab-' + tabId).classList.add('active');
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        event.target.classList.add('active');
-        if (tabId === 'stats') loadStats();
-    };
-
-    window.setViewMode = function(mode) {
-        document.body.classList.remove('pc-mode', 'mobile-mode');
-        document.body.classList.add(mode === 'pc' ? 'pc-mode' : 'mobile-mode');
-        document.getElementById('pcBtn').classList.toggle('active', mode === 'pc');
-        document.getElementById('mobileBtn').classList.toggle('active', mode === 'mobile');
-    };
-</script>
+        document.getElementById
 </body>
 </html>
