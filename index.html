@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Розница: Система отчётов — KREPCOM</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -11,7 +11,6 @@
         body { background: linear-gradient(135deg, #b31b1b 0%, #7a0f0f 100%); min-height: 100vh; padding: 20px; font-family: 'Segoe UI', Roboto, system-ui, sans-serif; }
         body.pc-mode { max-width: 1600px; margin: 0 auto; }
         body.mobile-mode { max-width: 550px; margin: 0 auto; padding: 12px; }
-        
         #loginScreen { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #b31b1b 0%, #7a0f0f 100%); position: fixed; top: 0; left: 0; width: 100%; z-index: 9999; }
         .login-box { background: white; padding: 40px; border-radius: 24px; text-align: center; max-width: 400px; width: 90%; }
         .login-box h2 { margin-bottom: 20px; color: #1a1a1a; }
@@ -19,7 +18,6 @@
         .login-box input { text-align: center; letter-spacing: 4px; }
         .login-box button { width: 100%; background: #cc2222; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
         .login-error { color: #b91c1c; margin-top: 15px; font-size: 14px; display: none; }
-        
         #mainContent { display: none; }
         .toolbar { background: #1a1a1a; border-radius: 28px; padding: 12px 24px; margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
         .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -29,7 +27,6 @@
         .btn-warning { background: #b45309; color: white; }
         .view-btn { background: #333; color: #ccc; }
         .view-btn.active { background: #cc2222; color: white; }
-        
         .report-card { background: white; border-radius: 32px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); overflow: hidden; margin-bottom: 30px; }
         .header { background: #1a1a1a; color: white; padding: 20px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
         .date-picker input { background: rgba(255,255,255,0.15); border: none; padding: 8px 15px; border-radius: 30px; color: white; font-size: 16px; }
@@ -158,20 +155,21 @@
 </div>
 
 <script>
-    // ✅ ИСПРАВЛЕНО: Убрано дублирование переменных
+    // 1. Инициализация (без дубликатов)
     const SUPABASE_URL = 'https://sczaxmyskwaezbgigtjf.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjemF4bXlza3dhZXpiZ2lndGpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3Nzg5MzYsImV4cCI6MjEwNDM1NDkzNn0.cFRF5gn9j5wO5rdCRZhliRP5IFIuJuZqwG3IKjSowyw';
     
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    alert('🚀 СКРИПТ ЗАПУСТИЛСЯ!'); // Теперь это сработает!
+    
+    // 2. Тест запуска
+    alert('🚀 СКРИПТ ЗАПУСТИЛСЯ УСПЕШНО!');
     
     let currentUser = null;
     let monthlyChart = null;
 
     async function loadUsers() {
-        console.log('🔄 Загрузка сотрудников...');
         const { data, error } = await supabase.rpc('get_user_list');
-        if (error) { console.error('❌ Ошибка:', error); return; }
+        if (error) { console.error('Ошибка:', error); return; }
         
         const select = document.getElementById('loginName');
         select.innerHTML = '<option value="">— Выберите сотрудника —</option>';
@@ -182,7 +180,6 @@
                 option.textContent = user.name + ' (' + user.department + ')';
                 select.appendChild(option);
             });
-            console.log('✅ Список заполнен:', data.length);
         }
     }
 
@@ -232,7 +229,7 @@
         const factRevenue = document.getElementById('factRevenue').value;
         if (!factRevenue) { alert('❌ Заполните факт выручки'); return; }
         
-        setStatus('📤 Отправка...');
+        document.getElementById('syncStatus').textContent = '📤 Отправка...';
         const report = {
             date: document.getElementById('reportDate').value,
             department: document.getElementById('departmentSelect').value,
@@ -263,13 +260,12 @@
         
         const { error } = await supabase.from('reports').insert([report]);
         if (error) {
-            setStatus('❌ Ошибка', true);
             alert('❌ Ошибка: ' + error.message);
         } else {
-            setStatus('✅ Сохранено!');
             alert('✅ Отчёт успешно сохранён!');
             createNewReport();
         }
+        document.getElementById('syncStatus').textContent = '✅ Готово';
     };
 
     window.createNewReport = function() {
@@ -284,14 +280,12 @@
         document.getElementById('sick').value = '0';
         document.getElementById('absent').value = '0';
         document.getElementById('missedCalls').value = '0';
-        setStatus('🆕 Создан новый отчёт');
     };
 
     window.loadStats = async function() {
         const month = document.getElementById('statsMonthSelect').value;
-        setStatus('⏳ Загрузка...');
         const { data, error } = await supabase.from('reports').select('department, plan_revenue, fact_revenue').gte('date', month + '-01').lt('date', month + '-31');
-        if (error) { setStatus('❌ Ошибка', true); return; }
+        if (error) { return; }
         
         let totalPlan = 0, totalFact = 0;
         const deptStats = {};
@@ -306,11 +300,7 @@
         document.getElementById('totalPlan').textContent = totalPlan.toLocaleString() + ' ₽';
         document.getElementById('totalFact').textContent = totalFact.toLocaleString() + ' ₽';
         document.getElementById('totalPercent').textContent = (totalPlan > 0 ? ((totalFact / totalPlan) * 100).toFixed(1) : 0) + '%';
-        updateChart(deptStats);
-        setStatus('✅ Статистика загружена');
-    };
-
-    function updateChart(deptStats) {
+        
         const ctx = document.getElementById('monthlyChart').getContext('2d');
         const labels = Object.keys(deptStats);
         if (monthlyChart) monthlyChart.destroy();
@@ -325,16 +315,7 @@
             },
             options: { responsive: true, maintainAspectRatio: true }
         });
-    }
-
-    function setStatus(text, isError = false) {
-        const el = document.getElementById('syncStatus');
-        if (!el) return;
-        el.textContent = text;
-        el.style.background = isError ? '#fee2e2' : '#dcfce7';
-        el.style.color = isError ? '#b91c1c' : '#15803d';
-        setTimeout(() => { el.textContent = '✅ Готово'; }, 3000);
-    }
+    };
 
     window.showTab = function(tabId) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
