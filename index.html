@@ -121,36 +121,52 @@
 </div>
 
 <script>
-    const db_URL = 'https://sczaxmyskwaezbgigtjf.supabase.co';
-    const db_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjemF4bXlza3dhZXpiZ2lndGpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3Nzg5MzYsImV4cCI6MjEwNDM1NDkzNn0.cFRF5gn9j5wO5rdCRZhliRP5IFIuJuZqwG3IKjSowyw';
+    // 1. Правильные имена переменных
+    const SUPABASE_URL = 'https://sczaxmyskwaezbgigtjf.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjemF4bXlza3dhZXpiZ2lndGpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3Nzg5MzYsImV4cCI6MjEwNDM1NDkzNn0.cFRF5gn9j5wO5rdCRZhliRP5IFIuJuZqwG3IKjSowyw';
+    
+    // 2. Создаем клиент с правильными именами
     const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     
-    alert(' СКРИПТ ЗАПУСТИЛСЯ!');
+    alert('✅ СКРИПТ ЗАПУСТИЛСЯ УСПЕШНО!');
     
     let currentUser = null;
     let monthlyChart = null;
 
     async function loadUsers() {
-        const { data } = await db.rpc('get_user_list');
+        const { data, error } = await db.rpc('get_user_list');
+        if (error) { console.error('Ошибка загрузки:', error); return; }
+        
         const select = document.getElementById('loginName');
         select.innerHTML = '<option value="">— Выберите сотрудника —</option>';
-        if (data) {
+        
+        if (data && data.length > 0) {
             data.forEach(u => {
                 const opt = document.createElement('option');
                 opt.value = u.name;
                 opt.textContent = u.name + ' (' + u.department + ')';
                 select.appendChild(opt);
             });
+            console.log('✅ Загружено сотрудников:', data.length);
+        } else {
+            console.warn('⚠️ Список сотрудников пуст. Проверьте таблицу users в Supabase.');
         }
     }
 
     window.doLogin = async function() {
         const name = document.getElementById('loginName').value;
         const pin = document.getElementById('loginPin').value;
-        if (!name || !pin) { document.getElementById('loginError').textContent = 'Заполните поля'; return; }
+        const errorEl = document.getElementById('loginError');
         
-        const { data } = await db.rpc('check_user_login', { p_name: name, p_pin: pin });
-        if (!data || data.length === 0) { document.getElementById('loginError').textContent = 'Неверный PIN'; return; }
+        if (!name || !pin) { errorEl.textContent = 'Заполните поля'; errorEl.style.display = 'block'; return; }
+        
+        const { data, error } = await db.rpc('check_user_login', { p_name: name, p_pin: pin });
+        
+        if (error || !data || data.length === 0) { 
+            errorEl.textContent = 'Неверный PIN'; 
+            errorEl.style.display = 'block'; 
+            return; 
+        }
         
         currentUser = data[0];
         document.getElementById('loginScreen').style.display = 'none';
@@ -180,7 +196,7 @@
         };
         
         const { error } = await db.from('reports').insert([report]);
-        if (error) alert('Ошибка: ' + error.message);
+        if (error) alert('❌ Ошибка: ' + error.message);
         else { alert('✅ Сохранено!'); createNewReport(); }
     };
 
@@ -188,10 +204,16 @@
         document.getElementById('factRevenue').value = '';
         document.getElementById('planRevenue').value = '';
         document.getElementById('factChecks').value = '';
+        document.getElementById('discountPerc').value = '';
+        document.getElementById('stockSales').value = '';
+        document.getElementById('phoneSales').value = '';
+        document.getElementById('comment').value = '';
     };
 
     window.loadStats = async function() {
-        const { data } = await db.from('reports').select('department, plan_revenue, fact_revenue');
+        const { data, error } = await db.from('reports').select('department, plan_revenue, fact_revenue');
+        if (error) { console.error(error); return; }
+        
         let plan = 0, fact = 0;
         const stats = {};
         data.forEach(r => {
@@ -201,6 +223,7 @@
             stats[r.department].p += r.plan_revenue || 0;
             stats[r.department].f += r.fact_revenue || 0;
         });
+        
         document.getElementById('totalPlan').textContent = plan.toLocaleString() + ' ₽';
         document.getElementById('totalFact').textContent = fact.toLocaleString() + ' ₽';
         document.getElementById('totalPercent').textContent = (plan ? ((fact/plan)*100).toFixed(1) : 0) + '%';
@@ -212,10 +235,11 @@
             data: {
                 labels: Object.keys(stats),
                 datasets: [
-                    { label: 'План', data: Object.keys(stats).map(d => stats[d].p), backgroundColor: '#b31b1b' },
-                    { label: 'Факт', data: Object.keys(stats).map(d => stats[d].f), backgroundColor: '#1a1a1a' }
+                    { label: 'План', data: Object.keys(stats).map(d => stats[d].p), backgroundColor: '#b31b1b', borderRadius: 6 },
+                    { label: 'Факт', data: Object.keys(stats).map(d => stats[d].f), backgroundColor: '#1a1a1a', borderRadius: 6 }
                 ]
-            }
+            },
+            options: { responsive: true, maintainAspectRatio: true }
         });
     };
 
@@ -230,6 +254,11 @@
     window.setViewMode = function(m) {
         document.body.className = m === 'pc' ? 'pc-mode' : 'mobile-mode';
     };
+
+    // Запуск при загрузке страницы
+    window.addEventListener('DOMContentLoaded', () => {
+        loadUsers();
+    });
 </script>
 </body>
 </html>
