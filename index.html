@@ -149,7 +149,7 @@
         const pin = document.getElementById('loginPin').value;
         if (!name || !pin) { document.getElementById('loginError').textContent = 'Заполните поля'; return; }
         
-        const { data } = await .rpc('check_user_login', { p_name: name, p_pin: pin });
+        const { data } = await db.rpc('check_user_login', { p_name: name, p_pin: pin });
         if (!data || data.length === 0) { document.getElementById('loginError').textContent = 'Неверный PIN'; return; }
         
         currentUser = data[0];
