@@ -123,7 +123,7 @@
 <script>
     const db_URL = 'https://sczaxmyskwaezbgigtjf.supabase.co';
     const db_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjemF4bXlza3dhZXpiZ2lndGpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3Nzg5MzYsImV4cCI6MjEwNDM1NDkzNn0.cFRF5gn9j5wO5rdCRZhliRP5IFIuJuZqwG3IKjSowyw';
-    const db = window.db.createClient(db_URL, db_KEY);
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     
     alert(' СКРИПТ ЗАПУСТИЛСЯ!');
     
