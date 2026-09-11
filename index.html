@@ -121,18 +121,17 @@
 </div>
 
 <script>
-    // 1. Правильные имена переменных
+    // 1. Настройки Supabase
     const SUPABASE_URL = 'https://sczaxmyskwaezbgigtjf.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjemF4bXlza3dhZXpiZ2lndGpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3Nzg5MzYsImV4cCI6MjEwNDM1NDkzNn0.cFRF5gn9j5wO5rdCRZhliRP5IFIuJuZqwG3IKjSowyw';
     
-    // 2. Создаем клиент с правильными именами
+    // 2. Инициализация клиента
     const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    
-    alert('✅ СКРИПТ ЗАПУСТИЛСЯ УСПЕШНО!');
     
     let currentUser = null;
     let monthlyChart = null;
 
+    // 3. Загрузка списка сотрудников
     async function loadUsers() {
         const { data, error } = await db.rpc('get_user_list');
         if (error) { console.error('Ошибка загрузки:', error); return; }
@@ -148,17 +147,20 @@
                 select.appendChild(opt);
             });
             console.log('✅ Загружено сотрудников:', data.length);
-        } else {
-            console.warn('⚠️ Список сотрудников пуст. Проверьте таблицу users в Supabase.');
         }
     }
 
+    // 4. Вход в систему
     window.doLogin = async function() {
         const name = document.getElementById('loginName').value;
         const pin = document.getElementById('loginPin').value;
         const errorEl = document.getElementById('loginError');
         
-        if (!name || !pin) { errorEl.textContent = 'Заполните поля'; errorEl.style.display = 'block'; return; }
+        if (!name || !pin) { 
+            errorEl.textContent = 'Заполните поля'; 
+            errorEl.style.display = 'block'; 
+            return; 
+        }
         
         const { data, error } = await db.rpc('check_user_login', { p_name: name, p_pin: pin });
         
@@ -177,90 +179,88 @@
 
     window.logout = function() { location.reload(); };
 
-   window.saveCurrentReport = async function() {
-    if (!document.getElementById('factRevenue').value) { 
-        alert('Заполните выручку'); 
-        return; 
-    }
-    
-    const report = {
-        date: document.getElementById('reportDate').value,
-        department: document.getElementById('departmentSelect').value,
-        user_name: currentUser.name,
-        dresscode: document.getElementById('dresscode')?.value || '',
-        staff: document.getElementById('staff')?.value || '',
-        late: parseInt(document.getElementById('late')?.value) || 0,
-        sick: parseInt(document.getElementById('sick')?.value) || 0,
-        absent: parseInt(document.getElementById('absent')?.value) || 0,
-        fact_revenue: parseFloat(document.getElementById('factRevenue').value),
-        fact_checks: parseInt(document.getElementById('factChecks')?.value) || 0,
-        plan_revenue: parseFloat(document.getElementById('planRevenue')?.value) || 0,
-        restock: document.getElementById('restock')?.value || '',
-        restock_comment: document.getElementById('restockComment')?.value || '',
-        meeting: document.getElementById('meeting')?.value || '',
-        meeting_comment: document.getElementById('meetingComment')?.value || '',
-        minuses: document.getElementById('minuses')?.value || '',
-        minuses_comment: document.getElementById('minusesComment')?.value || '',
-        discount_perc: parseFloat(document.getElementById('discountPerc')?.value) || 0,
-        stock_sales: parseFloat(document.getElementById('stockSales')?.value) || 0,
-        stock_comment: document.getElementById('stockComment')?.value || '',
-        phone_sales: parseFloat(document.getElementById('phoneSales')?.value) || 0,
-        phone_comment: document.getElementById('phoneComment')?.value || '',
-        missed_calls: parseInt(document.getElementById('missedCalls')?.value) || 0,
-        missed_comment: document.getElementById('missedComment')?.value || '',
-        comment: document.getElementById('comment')?.value || ''
-    };
-    
-    let supabaseSuccess = false;
-    let sheetsSuccess = false;
-    let errors = [];
-    
-    // 1. Отправка в Supabase
-    try {
-        const { error } = await db.from('reports').insert([report]);
-        if (error) throw error;
-        supabaseSuccess = true;
-    } catch (e) {
-        errors.push('Supabase: ' + e.message);
-    }
-    
-    // 2. Отправка в Google Sheets
-    try {
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxhX8AayfJ7FrBgn8_pW0_9EnNFDE3DgEKqSPgcralxeESV8GBx9CKONSzfdcIXud2T/exec'; // ← ВСТАВЬТЕ СЮДА URL из Шага 1
-        
-        const response = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify(report)
-        });
-        const result = await response.json();
-        
-        if (result.success) {
-            sheetsSuccess = true;
-        } else {
-            errors.push('Google Sheets: ' + result.error);
+    // 5. Сохранение отчёта (двойная запись: Supabase + Google Sheets)
+    window.saveCurrentReport = async function() {
+        if (!document.getElementById('factRevenue').value) { 
+            alert('Заполните факт выручки'); 
+            return; 
         }
-    } catch (e) {
-        errors.push('Google Sheets: ' + e.message);
-    }
-    
-    // 3. Показ результата
-    if (supabaseSuccess && sheetsSuccess) {
-        alert('✅ Отчёт сохранён в базу и Google Sheets!');
-        createNewReport();
-    } else if (supabaseSuccess || sheetsSuccess) {
-        alert('⚠️ Отчёт сохранён частично:\n' + 
-              (supabaseSuccess ? '✅ База данных\n' : '❌ База данных\n') +
-              (sheetsSuccess ? '✅ Google Sheets\n' : '❌ Google Sheets\n') +
-              (errors.length > 0 ? '\nОшибки:\n' + errors.join('\n') : ''));
-    } else {
-        alert(' Ошибка сохранения:\n' + errors.join('\n'));
-    }
-};
-        const { error } = await db.from('reports').insert([report]);
-        if (error) alert('❌ Ошибка: ' + error.message);
-        else { alert('✅ Сохранено!'); createNewReport(); }
+        
+        const report = {
+            date: document.getElementById('reportDate').value,
+            department: document.getElementById('departmentSelect').value,
+            user_name: currentUser.name,
+            dresscode: document.getElementById('dresscode')?.value || '',
+            staff: document.getElementById('staff')?.value || '',
+            late: parseInt(document.getElementById('late')?.value) || 0,
+            sick: parseInt(document.getElementById('sick')?.value) || 0,
+            absent: parseInt(document.getElementById('absent')?.value) || 0,
+            fact_revenue: parseFloat(document.getElementById('factRevenue').value),
+            fact_checks: parseInt(document.getElementById('factChecks')?.value) || 0,
+            plan_revenue: parseFloat(document.getElementById('planRevenue')?.value) || 0,
+            restock: document.getElementById('restock')?.value || '',
+            restock_comment: document.getElementById('restockComment')?.value || '',
+            meeting: document.getElementById('meeting')?.value || '',
+            meeting_comment: document.getElementById('meetingComment')?.value || '',
+            minuses: document.getElementById('minuses')?.value || '',
+            minuses_comment: document.getElementById('minusesComment')?.value || '',
+            discount_perc: parseFloat(document.getElementById('discountPerc')?.value) || 0,
+            stock_sales: parseFloat(document.getElementById('stockSales')?.value) || 0,
+            stock_comment: document.getElementById('stockComment')?.value || '',
+            phone_sales: parseFloat(document.getElementById('phoneSales')?.value) || 0,
+            phone_comment: document.getElementById('phoneComment')?.value || '',
+            missed_calls: parseInt(document.getElementById('missedCalls')?.value) || 0,
+            missed_comment: document.getElementById('missedComment')?.value || '',
+            comment: document.getElementById('comment')?.value || ''
+        };
+        
+        let supabaseSuccess = false;
+        let sheetsSuccess = false;
+        let errors = [];
+        
+        // Отправка в Supabase
+        try {
+            const { error } = await db.from('reports').insert([report]);
+            if (error) throw error;
+            supabaseSuccess = true;
+        } catch (e) {
+            errors.push('Supabase: ' + e.message);
+        }
+        
+        // Отправка в Google Sheets
+        try {
+            const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxhX8AayfJ7FrBgn8_pW0_9EnNFDE3DgEKqSPgcralxeESV8GBx9CKONSzfdcIXud2T/exec';
+            
+            const response = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(report)
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                sheetsSuccess = true;
+            } else {
+                errors.push('Google Sheets: ' + result.error);
+            }
+        } catch (e) {
+            errors.push('Google Sheets: ' + e.message);
+        }
+        
+        // Итоговое сообщение
+        if (supabaseSuccess && sheetsSuccess) {
+            alert('✅ Отчёт сохранён в базу и Google Sheets!');
+            createNewReport();
+        } else if (supabaseSuccess || sheetsSuccess) {
+            alert('⚠️ Отчёт сохранён частично:\n' + 
+                  (supabaseSuccess ? '✅ База данных\n' : '❌ База данных\n') +
+                  (sheetsSuccess ? '✅ Google Sheets\n' : '❌ Google Sheets\n') +
+                  (errors.length > 0 ? '\nОшибки:\n' + errors.join('\n') : ''));
+        } else {
+            alert('❌ Ошибка сохранения:\n' + errors.join('\n'));
+        }
     };
 
+    // 6. Очистка формы
     window.createNewReport = function() {
         document.getElementById('factRevenue').value = '';
         document.getElementById('planRevenue').value = '';
@@ -271,6 +271,7 @@
         document.getElementById('comment').value = '';
     };
 
+    // 7. Статистика
     window.loadStats = async function() {
         const { data, error } = await db.from('reports').select('department, plan_revenue, fact_revenue');
         if (error) { console.error(error); return; }
@@ -304,6 +305,7 @@
         });
     };
 
+    // 8. Переключение вкладок и режимов
     window.showTab = function(id) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
         document.getElementById('tab-' + id).classList.add('active');
