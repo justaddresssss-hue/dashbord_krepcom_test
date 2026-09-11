@@ -179,7 +179,7 @@
             comment: document.getElementById('comment').value
         };
         
-        const { error } = await .from('reports').insert([report]);
+        const { error } = await db.from('reports').insert([report]);
         if (error) alert('Ошибка: ' + error.message);
         else { alert('✅ Сохранено!'); createNewReport(); }
     };
