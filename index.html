@@ -177,24 +177,85 @@
 
     window.logout = function() { location.reload(); };
 
-    window.saveCurrentReport = async function() {
-        if (!document.getElementById('factRevenue').value) { alert('Заполните выручку'); return; }
+   window.saveCurrentReport = async function() {
+    if (!document.getElementById('factRevenue').value) { 
+        alert('Заполните выручку'); 
+        return; 
+    }
+    
+    const report = {
+        date: document.getElementById('reportDate').value,
+        department: document.getElementById('departmentSelect').value,
+        user_name: currentUser.name,
+        dresscode: document.getElementById('dresscode')?.value || '',
+        staff: document.getElementById('staff')?.value || '',
+        late: parseInt(document.getElementById('late')?.value) || 0,
+        sick: parseInt(document.getElementById('sick')?.value) || 0,
+        absent: parseInt(document.getElementById('absent')?.value) || 0,
+        fact_revenue: parseFloat(document.getElementById('factRevenue').value),
+        fact_checks: parseInt(document.getElementById('factChecks')?.value) || 0,
+        plan_revenue: parseFloat(document.getElementById('planRevenue')?.value) || 0,
+        restock: document.getElementById('restock')?.value || '',
+        restock_comment: document.getElementById('restockComment')?.value || '',
+        meeting: document.getElementById('meeting')?.value || '',
+        meeting_comment: document.getElementById('meetingComment')?.value || '',
+        minuses: document.getElementById('minuses')?.value || '',
+        minuses_comment: document.getElementById('minusesComment')?.value || '',
+        discount_perc: parseFloat(document.getElementById('discountPerc')?.value) || 0,
+        stock_sales: parseFloat(document.getElementById('stockSales')?.value) || 0,
+        stock_comment: document.getElementById('stockComment')?.value || '',
+        phone_sales: parseFloat(document.getElementById('phoneSales')?.value) || 0,
+        phone_comment: document.getElementById('phoneComment')?.value || '',
+        missed_calls: parseInt(document.getElementById('missedCalls')?.value) || 0,
+        missed_comment: document.getElementById('missedComment')?.value || '',
+        comment: document.getElementById('comment')?.value || ''
+    };
+    
+    let supabaseSuccess = false;
+    let sheetsSuccess = false;
+    let errors = [];
+    
+    // 1. Отправка в Supabase
+    try {
+        const { error } = await db.from('reports').insert([report]);
+        if (error) throw error;
+        supabaseSuccess = true;
+    } catch (e) {
+        errors.push('Supabase: ' + e.message);
+    }
+    
+    // 2. Отправка в Google Sheets
+    try {
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxhX8AayfJ7FrBgn8_pW0_9EnNFDE3DgEKqSPgcralxeESV8GBx9CKONSzfdcIXud2T/exec'; // ← ВСТАВЬТЕ СЮДА URL из Шага 1
         
-        const report = {
-            date: document.getElementById('reportDate').value,
-            department: document.getElementById('departmentSelect').value,
-            user_name: currentUser.name,
-            fact_revenue: parseFloat(document.getElementById('factRevenue').value),
-            fact_checks: parseInt(document.getElementById('factChecks').value) || 0,
-            plan_revenue: parseFloat(document.getElementById('planRevenue').value) || 0,
-            restock: document.getElementById('restock').value,
-            meeting: document.getElementById('meeting').value,
-            discount_perc: parseFloat(document.getElementById('discountPerc').value) || 0,
-            stock_sales: parseFloat(document.getElementById('stockSales').value) || 0,
-            phone_sales: parseFloat(document.getElementById('phoneSales').value) || 0,
-            comment: document.getElementById('comment').value
-        };
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(report)
+        });
+        const result = await response.json();
         
+        if (result.success) {
+            sheetsSuccess = true;
+        } else {
+            errors.push('Google Sheets: ' + result.error);
+        }
+    } catch (e) {
+        errors.push('Google Sheets: ' + e.message);
+    }
+    
+    // 3. Показ результата
+    if (supabaseSuccess && sheetsSuccess) {
+        alert('✅ Отчёт сохранён в базу и Google Sheets!');
+        createNewReport();
+    } else if (supabaseSuccess || sheetsSuccess) {
+        alert('⚠️ Отчёт сохранён частично:\n' + 
+              (supabaseSuccess ? '✅ База данных\n' : '❌ База данных\n') +
+              (sheetsSuccess ? '✅ Google Sheets\n' : '❌ Google Sheets\n') +
+              (errors.length > 0 ? '\nОшибки:\n' + errors.join('\n') : ''));
+    } else {
+        alert(' Ошибка сохранения:\n' + errors.join('\n'));
+    }
+};
         const { error } = await db.from('reports').insert([report]);
         if (error) alert('❌ Ошибка: ' + error.message);
         else { alert('✅ Сохранено!'); createNewReport(); }
