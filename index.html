@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Розница: Система отчётов — KREPCOM</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@db/db-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -121,9 +121,9 @@
 </div>
 
 <script>
-    const SUPABASE_URL = 'https://sczaxmyskwaezbgigtjf.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjemF4bXlza3dhZXpiZ2lndGpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3Nzg5MzYsImV4cCI6MjEwNDM1NDkzNn0.cFRF5gn9j5wO5rdCRZhliRP5IFIuJuZqwG3IKjSowyw';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const db_URL = 'https://sczaxmyskwaezbgigtjf.db.co';
+    const db_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjemF4bXlza3dhZXpiZ2lndGpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg3Nzg5MzYsImV4cCI6MjEwNDM1NDkzNn0.cFRF5gn9j5wO5rdCRZhliRP5IFIuJuZqwG3IKjSowyw';
+    const db = window.db.createClient(db_URL, db_KEY);
     
     alert(' СКРИПТ ЗАПУСТИЛСЯ!');
     
@@ -131,7 +131,7 @@
     let monthlyChart = null;
 
     async function loadUsers() {
-        const { data } = await supabase.rpc('get_user_list');
+        const { data } = await db.rpc('get_user_list');
         const select = document.getElementById('loginName');
         select.innerHTML = '<option value="">— Выберите сотрудника —</option>';
         if (data) {
@@ -149,7 +149,7 @@
         const pin = document.getElementById('loginPin').value;
         if (!name || !pin) { document.getElementById('loginError').textContent = 'Заполните поля'; return; }
         
-        const { data } = await supabase.rpc('check_user_login', { p_name: name, p_pin: pin });
+        const { data } = await .rpc('check_user_login', { p_name: name, p_pin: pin });
         if (!data || data.length === 0) { document.getElementById('loginError').textContent = 'Неверный PIN'; return; }
         
         currentUser = data[0];
@@ -179,7 +179,7 @@
             comment: document.getElementById('comment').value
         };
         
-        const { error } = await supabase.from('reports').insert([report]);
+        const { error } = await .from('reports').insert([report]);
         if (error) alert('Ошибка: ' + error.message);
         else { alert('✅ Сохранено!'); createNewReport(); }
     };
@@ -191,7 +191,7 @@
     };
 
     window.loadStats = async function() {
-        const { data } = await supabase.from('reports').select('department, plan_revenue, fact_revenue');
+        const { data } = await db.from('reports').select('department, plan_revenue, fact_revenue');
         let plan = 0, fact = 0;
         const stats = {};
         data.forEach(r => {
