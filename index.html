@@ -58,9 +58,10 @@
 
 <div id="mainContent">
     <div class="user-info">👤 <span id="currentUserName"></span> <button onclick="logout()" style="background:#ef4444;color:white;border:none;padding:4px 10px;border-radius:10px;margin-left:10px;cursor:pointer;">Выйти</button></div>
-    <div class="toolbar">
+        <div class="toolbar">
         <button class="btn btn-warning" onclick="createNewReport()">🆕 Новый отчёт</button>
         <button class="btn btn-success" onclick="saveCurrentReport()">💾 Сохранить</button>
+        <button class="btn" onclick="deleteLastReport()" style="background: #b91c1c; color: white;">🗑️ Удалить последнюю</button>
         <button class="view-btn" id="pcBtn" onclick="setViewMode('pc')">🖥️ ПК</button>
         <button class="view-btn" id="mobileBtn" onclick="setViewMode('mobile')"> Мобильный</button>
     </div>
@@ -262,6 +263,69 @@
                   (errors.length > 0 ? '\nОшибки:\n' + errors.join('\n') : ''));
         } else {
             alert('❌ Ошибка сохранения:\n' + errors.join('\n'));
+        }
+    };
+    // Удаление ПОСЛЕДНЕЙ записи
+    window.deleteLastReport = async function() {
+        if (!confirm('⚠️ Удалить ПОСЛЕДНЮЮ запись из базы и Google Таблицы?\n\nЭто действие необратимо.')) {
+            return;
+        }
+
+        let supabaseSuccess = false;
+        let sheetsSuccess = false;
+        let errors = [];
+
+        // 1. Удаление из Supabase (последняя по дате создания)
+        try {
+            const { data, error } = await db
+                .from('reports')
+                .select('id')
+                .order('created_at', { ascending: false })
+                .limit(1);
+            
+            if (error) throw error;
+            
+            if (data && data.length > 0) {
+                const { error: deleteError } = await db
+                    .from('reports')
+                    .delete()
+                    .eq('id', data[0].id);
+                
+                if (deleteError) throw deleteError;
+                supabaseSuccess = true;
+            } else {
+                errors.push('Supabase: нет записей');
+            }
+        } catch (e) {
+            errors.push('Supabase: ' + e.message);
+        }
+
+        // 2. Удаление из Google Sheets (последняя строка)
+        try {
+            const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxhX8AayfJ7FrBgn8_pW0_9EnNFDE3DgEKqSPgcralxeESV8GBx9CKONSzfdcIXud2T/exec';
+            const today = new Date().toISOString().split('T')[0];
+            
+            const response = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'delete_last', date: today })
+            });
+            const result = await response.json();
+
+            if (result.success) sheetsSuccess = true;
+            else errors.push('Google Sheets: ' + result.error);
+        } catch (e) {
+            errors.push('Google Sheets: ' + e.message);
+        }
+
+        // 3. Результат
+        if (supabaseSuccess && sheetsSuccess) {
+            alert('✅ Последняя запись удалена из обоих источников!');
+        } else {
+            alert('⚠️ Частичное удаление:\n' + 
+                  (supabaseSuccess ? '✅ База\n' : '❌ База\n') +
+                  (sheetsSuccess ? '✅ Таблица\n' : '❌ Таблица\n') +
+                  (errors.length > 0 ? '\n' + errors.join('\n') : ''));
         }
     };
 
