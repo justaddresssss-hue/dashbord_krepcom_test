@@ -227,14 +227,19 @@
             errors.push('Supabase: ' + e.message);
         }
         
-        // Отправка в Google Sheets
+               // 2. Отправка в Google Sheets
         try {
-            const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxhX8AayfJ7FrBgn8_pW0_9EnNFDE3DgEKqSPgcralxeESV8GBx9CKONSzfdcIXud2T/exec';
+            const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxS8Zo736QMFqpuirG8nasi9pK32wwS5crRB56A7ukSdF45ObNxGJhzUmv-tVHg3Xqk/exec'; // Убедитесь, что это свежий URL
             
             const response = await fetch(APPS_SCRIPT_URL, {
                 method: 'POST',
+                // Хак для обхода CORS в Google Apps Script:
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8',
+                },
                 body: JSON.stringify(report)
             });
+            
             const result = await response.json();
             
             if (result.success) {
