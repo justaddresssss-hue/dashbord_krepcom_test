@@ -106,18 +106,51 @@
         </div>
     </div>
     <div id="tab-stats" class="tab-content">
-        <div class="report-card">
-            <div class="header"><h2>📊 Статистика</h2></div>
-            <div class="section">
-                <div class="kpi-grid">
-                    <div class="kpi-card"><div class="kpi-label">План</div><div class="kpi-value" id="totalPlan">0 ₽</div></div>
-                    <div class="kpi-card"><div class="kpi-label">Факт</div><div class="kpi-value" id="totalFact">0 ₽</div></div>
-                    <div class="kpi-card"><div class="kpi-label">Выполнение</div><div class="kpi-value" id="totalPercent">0%</div></div>
+    <div class="report-card">
+        <div class="header">
+            <h2> Статистика</h2>
+            <div id="periodFilters" style="display: flex; gap: 8px;">
+                <button class="btn" onclick="loadStats(7)" style="background: #333;">7 дней</button>
+                <button class="btn" onclick="loadStats(30)" style="background: #333;">30 дней</button>
+                <button class="btn" onclick="loadStats(90)" style="background: #333;">90 дней</button>
+                <button class="btn" onclick="loadStats(0)" style="background: #333;">Всё время</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <!-- KPI Карточки -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-label">💰 Общая выручка</div>
+                    <div class="kpi-value" id="kpiRevenue">0 ₽</div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Факт за период</div>
                 </div>
-                <div class="chart-container"><canvas id="monthlyChart"></canvas></div>
+                <div class="kpi-card">
+                    <div class="kpi-label">🎯 Выполнение плана</div>
+                    <div class="kpi-value" id="kpiPercent">0%</div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 4px;" id="kpiPlanFact">0 / 0 ₽</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">💳 Средний чек</div>
+                    <div class="kpi-value" id="kpiAvgCheck">0 ₽</div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 4px;" id="kpiChecks">0 чеков</div>
+                </div>
+            </div>
+            
+            <!-- График 1: План vs Факт по подразделениям -->
+            <div class="section-title">📊 План vs Факт по подразделениям</div>
+            <div class="chart-container">
+                <canvas id="deptChart"></canvas>
+            </div>
+            
+            <!-- График 2: Динамика выручки по дням -->
+            <div class="section-title" style="margin-top: 30px;"> Динамика выручки по дням</div>
+            <div class="chart-container">
+                <canvas id="dailyChart"></canvas>
             </div>
         </div>
     </div>
+</div>
     <div id="syncStatus" class="status-badge">✅ Готово</div>
 </div>
 
@@ -340,37 +373,204 @@
         document.getElementById('comment').value = '';
     };
 
-    // 7. Статистика
-    window.loadStats = async function() {
-        const { data, error } = await db.from('reports').select('department, plan_revenue, fact_revenue');
-        if (error) { console.error(error); return; }
+      // Статистика с фильтрами
+    let deptChart = null;
+    let dailyChart = null;
+
+    window.loadStats = async function(days = 30) {
+        // 1. Определяем диапазон дат
+        const today = new Date();
+        let startDate;
         
-        let plan = 0, fact = 0;
-        const stats = {};
+        if (days === 0) {
+            startDate = new Date('2020-01-01'); // Всё время
+        } else {
+            startDate = new Date();
+            startDate.setDate(today.getDate() - days);
+        }
+        
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = today.toISOString().split('T')[0];
+        
+        // 2. Загружаем данные из Supabase
+        const { data, error } = await db
+            .from('reports')
+            .select('date, department, plan_revenue, fact_revenue, fact_checks')
+            .gte('date', startDateStr)
+            .lte('date', endDateStr)
+            .order('date', { ascending: true });
+        
+        if (error) { 
+            console.error('Ошибка загрузки статистики:', error); 
+            alert('Ошибка загрузки данных: ' + error.message);
+            return; 
+        }
+        
+        if (!data || data.length === 0) {
+            alert('Нет данных за выбранный период');
+            return;
+        }
+        
+        // 3. Считаем KPI
+        let totalPlan = 0;
+        let totalFact = 0;
+        let totalChecks = 0;
+        const byDept = {};
+        const byDay = {};
+        
         data.forEach(r => {
-            plan += r.plan_revenue || 0;
-            fact += r.fact_revenue || 0;
-            if (!stats[r.department]) stats[r.department] = { p: 0, f: 0 };
-            stats[r.department].p += r.plan_revenue || 0;
-            stats[r.department].f += r.fact_revenue || 0;
+            const plan = r.plan_revenue || 0;
+            const fact = r.fact_revenue || 0;
+            const checks = r.fact_checks || 0;
+            
+            totalPlan += plan;
+            totalFact += fact;
+            totalChecks += checks;
+            
+            // По подразделениям
+            if (!byDept[r.department]) byDept[r.department] = { plan: 0, fact: 0 };
+            byDept[r.department].plan += plan;
+            byDept[r.department].fact += fact;
+            
+            // По дням
+            if (!byDay[r.date]) byDay[r.date] = { plan: 0, fact: 0 };
+            byDay[r.date].plan += plan;
+            byDay[r.date].fact += fact;
         });
         
-        document.getElementById('totalPlan').textContent = plan.toLocaleString() + ' ₽';
-        document.getElementById('totalFact').textContent = fact.toLocaleString() + ' ₽';
-        document.getElementById('totalPercent').textContent = (plan ? ((fact/plan)*100).toFixed(1) : 0) + '%';
+        const avgCheck = totalChecks > 0 ? Math.round(totalFact / totalChecks) : 0;
+        const percent = totalPlan > 0 ? ((totalFact / totalPlan) * 100).toFixed(1) : 0;
         
-        const ctx = document.getElementById('monthlyChart').getContext('2d');
-        if (monthlyChart) monthlyChart.destroy();
-        monthlyChart = new Chart(ctx, {
+        // 4. Обновляем KPI-карточки
+        document.getElementById('kpiRevenue').textContent = totalFact.toLocaleString() + ' ₽';
+        document.getElementById('kpiPercent').textContent = percent + '%';
+        document.getElementById('kpiPlanFact').textContent = totalFact.toLocaleString() + ' / ' + totalPlan.toLocaleString() + ' ₽';
+        document.getElementById('kpiAvgCheck').textContent = avgCheck.toLocaleString() + ' ₽';
+        document.getElementById('kpiChecks').textContent = totalChecks.toLocaleString() + ' чеков';
+        
+        // Цвет KPI выполнения плана
+        const percentEl = document.getElementById('kpiPercent');
+        if (percent >= 100) percentEl.style.color = '#15803d';
+        else if (percent >= 80) percentEl.style.color = '#b45309';
+        else percentEl.style.color = '#b91c1c';
+        
+        // 5. График 1: План vs Факт по подразделениям
+        const deptLabels = Object.keys(byDept);
+        const deptPlanData = deptLabels.map(d => byDept[d].plan);
+        const deptFactData = deptLabels.map(d => byDept[d].fact);
+        
+        if (deptChart) deptChart.destroy();
+        const ctx1 = document.getElementById('deptChart').getContext('2d');
+        deptChart = new Chart(ctx1, {
             type: 'bar',
             data: {
-                labels: Object.keys(stats),
+                labels: deptLabels,
                 datasets: [
-                    { label: 'План', data: Object.keys(stats).map(d => stats[d].p), backgroundColor: '#b31b1b', borderRadius: 6 },
-                    { label: 'Факт', data: Object.keys(stats).map(d => stats[d].f), backgroundColor: '#1a1a1a', borderRadius: 6 }
+                    { 
+                        label: 'План', 
+                        data: deptPlanData, 
+                        backgroundColor: 'rgba(179, 27, 27, 0.6)',
+                        borderColor: '#b31b1b',
+                        borderWidth: 2,
+                        borderRadius: 6
+                    },
+                    { 
+                        label: 'Факт', 
+                        data: deptFactData, 
+                        backgroundColor: 'rgba(26, 26, 26, 0.6)',
+                        borderColor: '#1a1a1a',
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }
                 ]
             },
-            options: { responsive: true, maintainAspectRatio: true }
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toLocaleString() + ' ₽';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return (value / 1000) + 'к ₽';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 6. График 2: Динамика выручки по дням
+        const dayLabels = Object.keys(byDay).sort();
+        const dayPlanData = dayLabels.map(d => byDay[d].plan);
+        const dayFactData = dayLabels.map(d => byDay[d].fact);
+        
+        if (dailyChart) dailyChart.destroy();
+        const ctx2 = document.getElementById('dailyChart').getContext('2d');
+        dailyChart = new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: dayLabels.map(d => {
+                    const date = new Date(d);
+                    return date.getDate() + '.' + (date.getMonth() + 1);
+                }),
+                datasets: [
+                    {
+                        label: 'План',
+                        data: dayPlanData,
+                        borderColor: '#b31b1b',
+                        backgroundColor: 'rgba(179, 27, 27, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: false,
+                        pointRadius: 3
+                    },
+                    {
+                        label: 'Факт',
+                        data: dayFactData,
+                        borderColor: '#1a1a1a',
+                        backgroundColor: 'rgba(26, 26, 26, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toLocaleString() + ' ₽';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return (value / 1000) + 'к ₽';
+                            }
+                        }
+                    }
+                }
+            }
         });
     };
 
