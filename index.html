@@ -230,7 +230,7 @@
         
                // 2. Отправка в Google Sheets
         try {
-            const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxS8Zo736QMFqpuirG8nasi9pK32wwS5crRB56A7ukSdF45ObNxGJhzUmv-tVHg3Xqk/exec'; // Убедитесь, что это свежий URL
+            const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbySZ4e-zUOtnNHuUaWU7wL9zr6IbKlYt4ys1BLJGYjOdYQwmxkBkj4vy9m9boCRlDmX/exec'; // Убедитесь, что это свежий URL
             
             const response = await fetch(APPS_SCRIPT_URL, {
                 method: 'POST',
@@ -302,7 +302,7 @@
 
         // 2. Удаление из Google Sheets (последняя строка)
         try {
-            const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxhX8AayfJ7FrBgn8_pW0_9EnNFDE3DgEKqSPgcralxeESV8GBx9CKONSzfdcIXud2T/exec';
+            const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbySZ4e-zUOtnNHuUaWU7wL9zr6IbKlYt4ys1BLJGYjOdYQwmxkBkj4vy9m9boCRlDmX/exec';
             const today = new Date().toISOString().split('T')[0];
             
             const response = await fetch(APPS_SCRIPT_URL, {
